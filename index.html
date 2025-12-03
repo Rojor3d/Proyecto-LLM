@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathAI - Asistente Matemático Inteligente</title>
+    
+    <!-- MathJax para renderizar LaTeX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 5px;
+        }
+
+        /* Math keyboard */
+        .math-keyboard {
+            background: #f9fafb;
+            border-top: 1px solid #e0e0e0;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .math-key {
+            background: white;
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 18px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .math-key:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .math-key:active {
+            transform: translateY(0);
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 15px 50px 15px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            resize: none;
+            font-family: inherit;
+            transition: border-color 0.3s;
+            min-height: 50px;
+            max-height: 120px;
+        }
+
+        #messageInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .toggle-keyboard {
+            position: absolute;
+            right: 10px;
+            bottom: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .toggle-keyboard:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .auth-box h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-auth {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .auth-switch a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .math-keyboard {
+                grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-box">
+            <h2 id="authTitle">Iniciar Sesión</h2>
+            <div id="authMessage"></div>
+            
+            <div id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Correo electrónico</label>
+                    <input type="email" id="loginEmail" placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••">
+                </div>
+                <button class="btn-auth" onclick="login()">Entrar</button>
+                <div class="auth-switch">
+                    ¿No tienes cuenta? <a onclick="switchToRegister()">Regístrate</a>
+                </div>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="registerName">Nombre</label>
+                    <input type="text" id="registerName" placeholder="Tu nombre">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Correo electrónico</label>
+                    <input type="email" id="registerEmail" placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Contraseña (mínimo 6 caracteres)</label>
+                    <input type="password" id="registerPassword" placeholder="••••••">
+                </div>
+                <button class="btn-auth" onclick="register()">Crear cuenta</button>
+                <div class="auth-switch">
+                    ¿Ya tienes cuenta? <a onclick="switchToLogin()">Inicia sesión</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="container" id="mainApp" style="display: none;">
+        <div class="header">
+            <h1>
+                <span>📐</span>
+                MathAI
+            </h1>
+            <div class="user-info">
+                <span class="user-name" id="userName">Usuario</span>
+                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        ¡Hola! Soy tu asistente matemático inteligente 🤖📊<br><br>
+                        Puedo ayudarte con:<br>
+                        • Álgebra y ecuaciones<br>
+                        • Cálculo (derivadas, integrales, límites)<br>
+                        • Trigonometría<br>
+                        • Probabilidad y estadística<br>
+                        • Geometría<br><br>
+                        Usa el teclado especial ⌨️ para símbolos matemáticos. ¿En qué puedo ayudarte hoy?
+                    </div>
+                </div>
+            </div>
+
+            <div class="math-keyboard" id="mathKeyboard" style="display: none;">
+                <!-- Símbolos matemáticos -->
+            </div>
+
+            <div class="input-area">
+                <div class="loading" id="loading">
+                    <div class="loader"></div>
+                    <p>Pensando...</p>
+                </div>
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Escribe tu pregunta matemática aquí..."
+                            rows="1"
+                        ></textarea>
+                        <button class="toggle-keyboard" onclick="toggleKeyboard()" title="Teclado matemático">
+                            ⌨️
+                        </button>
+                    </div>
+                    <button class="btn-send" onclick="sendMessage()">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let sessionToken = null;
+        let currentUser = null;
+
+        // Símbolos matemáticos para el teclado
+        const mathSymbols = [
+            '+', '-', '×', '÷', '=', '≠', '≈', '≤', '≥',
+            '∞', '√', '∛', '∜', '^', '²', '³', 'π', 'θ',
+            'α', 'β', 'γ', 'Δ', 'Σ', '∫', '∂', '∇',
+            '(', ')', '[', ']', '{', '}', '|', '∈', '∉',
+            '∪', '∩', '⊂', '⊃', '∀', '∃', '∴', '∵',
+            '°', '%', '!', 'sin', 'cos', 'tan', 'log', 'ln',
+            'lim', 'Σ', '∏', '∆', 'dx', 'dy', 'f(x)', 'x²'
+        ];
+
+        // Inicializar
+        window.onload = function() {
+            checkSession();
+            initMathKeyboard();
+            
+            // Enter para enviar
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            document.getElementById('messageInput').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+        };
+
+        function initMathKeyboard() {
+            const keyboard = document.getElementById('mathKeyboard');
+            mathSymbols.forEach(symbol => {
+                const key = document.createElement('div');
+                key.className = 'math-key';
+                key.textContent = symbol;
+                key.onclick = () => insertSymbol(symbol);
+                keyboard.appendChild(key);
+            });
+        }
+
+        function toggleKeyboard() {
+            const keyboard = document.getElementById('mathKeyboard');
+            keyboard.style.display = keyboard.style.display === 'none' ? 'grid' : 'none';
+        }
+
+        function insertSymbol(symbol) {
+            const input = document.getElementById('messageInput');
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const text = input.value;
+            input.value = text.substring(0, start) + symbol + text.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + symbol.length;
+        }
+
+        function checkSession() {
+            sessionToken = localStorage.getItem('sessionToken');
+            currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (sessionToken && currentUser) {
+                showMainApp();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('mainApp').style.display = 'none';
+        }
+
+        function showMainApp() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('mainApp').style.display = 'flex';
+            document.getElementById('userName').textContent = currentUser?.name || 'Usuario';
+        }
+
+        function switchToRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('authTitle').textContent = 'Crear Cuenta';
+            clearAuthMessage();
+        }
+
+        function switchToLogin() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('authTitle').textContent = 'Iniciar Sesión';
+            clearAuthMessage();
+        }
+
+        function showAuthMessage(message, type) {
+            const msgDiv = document.getElementById('authMessage');
+            msgDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            msgDiv.textContent = message;
+        }
+
+        function clearAuthMessage() {
+            document.getElementById('authMessage').innerHTML = '';
+        }
+
+        async function register() {
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+
+            if (!name || !email || !password) {
+                showAuthMessage('Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    showAuthMessage('¡Cuenta creada! Iniciando sesión...', 'success');
+                    setTimeout(() => {
+                        document.getElementById('loginEmail').value = email;
+                        document.getElementById('loginPassword').value = password;
+                        switchToLogin();
+                        login();
+                    }, 1500);
+                } else {
+                    showAuthMessage(data.msg || 'Error al registrar', 'error');
+                }
+            } catch (error) {
+                showAuthMessage('Error de conexión. ¿Está el servidor corriendo?', 'error');
+                console.error(error);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showAuthMessage('Por favor ingresa email y contraseña', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    sessionToken = data.session_token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('sessionToken', sessionToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    showMainApp();
+                    loadHistory();
+                } else {
+                    showAuthMessage(data.msg || 'Credenciales incorrectas', 'error');
+                }
+            } catch (error) {
+                showAuthMessage('Error de conexión. Verifica que el servidor esté corriendo en http://localhost:5000', 'error');
+                console.error(error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_token: sessionToken })
+                });
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+
+            sessionToken = null;
+            currentUser = null;
+            localStorage.removeItem('sessionToken');
+            localStorage.removeItem('currentUser');
+            
+            document.getElementById('messages').innerHTML = '';
+            showAuthModal();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            addMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+
+            // Mostrar loading
+            document.getElementById('loading').classList.add('show');
+            document.querySelector('.btn-send').disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_token: sessionToken
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addMessage(data.response, 'assistant');
+                } else {
+                    let errorMsg = 'Error: ';
+                    if (data.error) {
+                        // Detectar error de modelo inválido
+                        if (data.error.includes('not a valid model')) {
+                            errorMsg += 'El modelo de IA no está disponible. Por favor, actualiza el modelo en server.py';
+                        } else if (data.error.includes('Sesión inválida')) {
+                            errorMsg += 'Tu sesión expiró. Por favor, inicia sesión nuevamente.';
+                            setTimeout(() => logout(), 2000);
+                        } else {
+                            errorMsg += data.error;
+                        }
+                    } else {
+                        errorMsg += 'No se pudo procesar tu mensaje';
+                    }
+                    addMessage(errorMsg, 'assistant');
+                }
+            } catch (error) {
+                addMessage('Error de conexión. Verifica que el servidor esté corriendo.', 'assistant');
+                console.error(error);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.querySelector('.btn-send').disabled = false;
+            }
+        }
+
+        function addMessage(text, role) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = text;
+            
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Renderizar LaTeX
+            if (window.MathJax) {
+                MathJax.typesetPromise([contentDiv]).catch((err) => console.log('MathJax error:', err));
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_URL}/history`, {
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                // Solo cargar historial si el chat está vacío
+                const messagesDiv = document.getElementById('messages');
+                const hasMessages = messagesDiv.children.length > 1; // Más de mensaje de bienvenida
+
+                if (!hasMessages && data.history && data.history.length > 0) {
+                    data.history.forEach(msg => {
+                        if (msg.role !== 'system') {
+                            addMessage(msg.content, msg.role === 'user' ? 'user' : 'assistant');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+            }
+        }
+    </script>
+</body>
+</html>
